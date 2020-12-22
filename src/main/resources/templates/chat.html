@@ -1,0 +1,449 @@
+<link rel="stylesheet" type="text/css"
+      href="webjars/bootstrap/4.0.0/css/bootstrap.min.css">
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<script src="/webjars/vue/2.6.11/vue.min.js"></script>
+<script src="/webjars/jquery/3.0.0/jquery.min.js"></script>
+<script src="/webjars/popper.js/2.5.2/umd/popper.min.js"></script>
+<script src="/webjars/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+<script src="/webjars/axios/0.19.0/dist/axios.min.js"></script>
+<script src="/webjars/sockjs-client/sockjs.min.js"></script>
+<script src="/webjars/stomp-websocket/stomp.min.js"></script>
+<html>
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" type="text/css"
+          rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="/style.css"/>
+    <style>
+        input[type="file"] {
+            position: absolute;
+            top: -500px;
+        }
+
+        div.file-listing img {
+            max-width: 90%;
+        }
+    </style>
+    <script type="text/x-template" id="modal-template">
+        <transition name="modal">
+            <div class="modal-mask">
+                <div class="modal-wrapper">
+                    <div class="modal-container">
+                        <div>
+                            <slot name="x">
+                                default x
+                            </slot>
+                        </div>
+                        <div class="modal-header">
+                            <slot name="header">
+                                default header
+                            </slot>
+                        </div>
+                        <div class="modal-body">
+                            <slot name="body">
+                                default body
+                            </slot>
+                        </div>
+                        <div>
+                            <slot name="footer">
+                                default footer
+                            </slot>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+    </script>
+</head>
+<body class="body-chat">
+
+
+<div class="container">
+    <div class="messaging">
+        <div class="inbox_msg" id="app" style="height: 99%;">
+            <div class="inbox_people">
+                <div class="headind_srch">
+                    <div class="recent_heading">
+                        <h4 th:text="${userName.first}" style="float: left; padding-right: 12px"></h4>
+                        <h6 th:text="${userName.last}" style="float: left; padding-top: 5px; padding-right: 12px"></h6>
+                        <a href="/logout" class="btn btn-info btn-sm"><span class="fa fa-lock"></span></a>
+                    </div>
+                    <div class="srch_bar">
+                        <div class="stylish-input-group">
+                            <input type="text" class="search-bar" placeholder="Search">
+                            <span class="input-group-addon">
+                <button type="button"> <i class="fa fa-search" aria-hidden="true"></i> </button>
+                </span></div>
+                    </div>
+                </div>
+                <div class="inbox_chat">
+                    <div class="chat_list " v-bind:class="{'active_chat': current === user.id}"
+                         v-on:click="openOtherPeoplesPanel(user)" v-for="user in userList">
+                        <div class="chat_people">
+                            <div class="chat_img">
+                                <img class="rounded-circle z-depth-2" alt="100x100"
+                                     v-bind:src="profileImg">
+                            </div>
+                            <div class="chat_ib">
+                                <h5> {{user.login}}
+                                    <span class="chat_date">Dec 25</span>
+                                    <span v-if="user.not_seen_message != 0" class="badge badge-pill badge-info"
+                                          style="margin-right: 9px;">{{user.not_seen_message}}</span>
+                                </h5>
+                                <!--<p v-if="!user.is_typing"> {{user.message}} </p>  bu joyini qo'shsak ham bo'ladi-->
+                            </div>
+                            <div v-if="user.is_typing" class="loader"
+                                 style="margin-left: 56px;margin-top: -6px;">
+                                Loading...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--            <div class="mesgs" style="background-image:url('rasm.jpg');">-->
+            <div class="mesgs" style="height: 100%">
+                <div id="infinityMsgList" style="height: 95.5% ; overflow-y: auto;margin-top: -10px;">
+                    <div v-if="!info">
+                        <div v-for="msgObj in messageHistory">
+                            <div class="incoming_msg" v-if="!msgObj.ownMessage" style="margin-bottom: 7px;">
+                                <div class="incoming_msg_img"><img
+                                        src="https://ptetutorials.com/images/user-profile.png"
+                                        alt="sunil"></div>
+                                <div class="received_msg">
+                                    <div class="received_withd_msg">
+                                        <p style="background-color: #b5d9ff">{{msgObj.message}}</p>
+                                        <span class="time_date"> 11:01 AM    |    Yesterday</span></div>
+                                </div>
+                            </div>
+
+                            <div class="outgoing_msg" v-else>
+                                <div class="sent_msg">
+                                    <p style="background-color: #007bffab">{{msgObj.message}}</p>
+                                    <span class="time_date"> 11:01 AM    |    Today</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="select-msg">
+                        <span style="color: white;font-weight: bolder;">Select a chat to start messaging</span>
+                    </div>
+                </div>
+
+                <div v-if="!info">
+                    <div class="type_msg">
+                        <div class="input_msg_write">
+                            <div class="container">
+                                <div class="row">
+                                    <div class="col-1" style="padding-top: 6px">
+                                        <input hidden type="file" id="files" ref="files" accept="image/*" multiple
+                                               v-on:change="handleFilesUpload()"/>
+                                        <label for="files" class="fa fa-file file"
+                                               style="cursor: pointer;font-size: 28px;color: #24242459"></label>
+                                    </div>
+                                    <div class="col-11" style="padding-left: 0">
+                                        <input v-on:keyup.enter="send()" type="text" class="write_msg"
+                                               v-model="inputsValue"
+                                               placeholder="Type a messages" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="msg_send_btn" style="background-color: #3a99ff" v-on:click="send()"><i
+                                    class="fa fa-paper-plane-o"
+                                    aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <modal v-if="showModal">
+                <div slot="x">
+                    <button class="modal-default-button btn btn dangar" v-on:click="closeModal()">
+                        ✕
+                    </button>
+                </div>
+                <h4 slot="header">Upload profile photo</h4>
+                <div class="grid-x" slot="body">
+                    <div v-for="(file, key) in files" class="large-4 medium-4 small-6 cell file-listing">
+                        <img class="preview" v-bind:ref="'image'+parseInt( key )"/>
+                    </div>
+                </div>
+                <div slot="footer">
+                    <button class="btn btn-success" v-on:click="submitFiles()">
+                        Submit
+                    </button>
+                </div>
+            </modal>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // register modal component
+    Vue.component("modal", {
+        template: "#modal-template"
+    });
+
+    // socket connection
+    let socket = new SockJS("/chat-pat-websocket-connect");
+    stompClient = Stomp.over(socket);
+    stompClient.connect({}, function (frame) {
+        console.log("successfully connected");
+        stompClient.subscribe("/user/topic/send-message", function (payload) {
+            let body = JSON.parse(payload.body);
+            chatApp.receiveMessage(body);
+        });
+        stompClient.subscribe("/user/topic/typing", function (payload) {
+            console.log(payload.body);
+            let body = JSON.parse(payload.body);
+            chatApp.showTypingEvent(body);
+        })
+    });
+
+    let chatApp = new Vue({
+        el: '#app',
+        data() {
+            return {
+                messageHistory: [],
+                inputsValue: null,
+                userList: [],
+                current: null,
+                info: false,
+                messageLoader: false,
+                nextItem: 1,
+
+                files: [],
+                showModal: false,
+                profileImg:"https://mdbootstrap.com/img/Photos/Avatars/img%20(31).jpg"
+            }
+        },
+        methods: {
+
+            send: function () {
+                if (this.inputsValue !== "" && this.inputsValue) {
+                    // add new messages to div
+                    this.messageHistory.push({message: this.inputsValue, ownMessage: true});
+
+                    // scroll to bottom
+                    this.$nextTick(() => {
+                        this.scrollToEnd();
+                    });
+
+                    // send to Friend
+                    let message = this.inputsValue;
+                    let toUserId = localStorage.toUserId;
+
+                    let userObj = {
+                        "message": message,
+                        "toId": toUserId
+                    };
+
+                    let payload = JSON.stringify(userObj);
+                    stompClient.send("/app/send-message-2-user", {}, payload);
+
+                    // save messages to db
+                    axios
+                        .post('http://localhost:8080/api/v1/message/save', userObj)
+                        .then((response) => {
+                            console.log(response);
+                        }, (error) => {
+                            console.log(error);
+                        });
+
+                    // update last message
+                    this.updateLastMessage(this.inputsValue, localStorage.toUserId);
+                    this.inputsValue = null;
+                }
+            },
+
+            receiveMessage: function (msgBrokerModel) {
+                if (msgBrokerModel.fromId == localStorage.toUserId) {
+                    this.messageHistory.push({message: msgBrokerModel.message, ownMessage: false});
+                } else {
+                    this.userList.forEach(userObj => {
+                        if (userObj.id == msgBrokerModel.fromId) {
+                            userObj.not_seen_message = userObj.not_seen_message + 1;
+                        }
+                    });
+                }
+                this.updateLastMessage(msgBrokerModel.message, msgBrokerModel.fromId);
+            },
+
+            updateLastMessage: function (text, userId) {
+                this.userList.forEach(user => {
+                    if (user.id == userId) {
+                        user.message = text;
+                    }
+                });
+                localStorage.isScroll = 'false';
+            },
+
+            scrollToEnd: function () {
+                let infinityMsgList = this.$el.querySelector("#infinityMsgList");
+                console.log("infinityMsgList.scrollHeight = " + infinityMsgList.scrollHeight);
+                console.log("infinityMsgList.scrollTop = " + infinityMsgList.scrollTop);
+                infinityMsgList.scrollTop = infinityMsgList.scrollHeight;
+            },
+
+            openOtherPeoplesPanel: function (user) {
+                localStorage.isScroll = 'false';
+                this.info = false;
+                this.current = user.id;
+                localStorage.toUserId = user.id;
+                this.messageHistory = [];
+                axios
+                    .get('http://localhost:8080/api/v1/message/list-by-user?toUserId=' + user.id + '&page=' + 0 + '&size=' + 15)
+                    .then((response) => {
+                        this.messageHistory = response.data.reverse();
+                    }, (error) => {
+                        console.log(error);
+                    });
+                axios
+                    .post('http://localhost:8080/api/v1/message/make-seen-true-by-id?fromUserId=' + user.id);
+
+                this.userList.forEach(userObj => {
+                    if (user.id == userObj.id) {
+                        user.not_seen_message = 0;
+                    }
+                });
+            },
+
+            showTypingEvent: function (user) {
+                if (localStorage.isTyping == 'false') {
+                    this.userList.forEach(userObj => {
+                        if (user.fromId === userObj.id) {
+                            userObj.is_typing = true;
+                            localStorage.isTyping = 'true';
+                            setTimeout(function () {
+                                userObj.is_typing = false;
+                                localStorage.isTyping = 'false';
+                            }, 1000);
+                        }
+                    });
+                }
+            },
+
+            loadMore(msgList) {
+                this.messageLoader = true;
+
+                let existingPageCount = Math.ceil(this.messageHistory.length / 15);
+                axios
+                    .get('http://localhost:8080/api/v1/message/list-by-user?toUserId=' + localStorage.toUserId + '&page=' + existingPageCount + '&size=' + 15)
+                    .then((response) => {
+                        let totalPage = response.headers.totalpages;
+                        if (existingPageCount < totalPage) {
+                            let responseDate = response.data.reverse();
+                            responseDate.push(...this.messageHistory);
+                            this.messageHistory = responseDate;
+                            msgList.scrollTop = '200';
+                        }
+                    }, (error) => {
+                        console.log(error);
+                    });
+
+                this.messageLoader = false;
+            },
+
+////////////////////////////////////////////////// FILE UPLOAD ///////////////////////////////////////////////////////////
+
+            closeModal() {
+                this.files = [];
+                this.showModal = false;
+            },
+            submitFiles() {
+                console.log("submitFIle methodga kirdi");
+                let formData = new FormData();
+                // for (var i = 0; i < this.files.length; i++) {
+                    let file = this.files[0];
+
+                    // formData.append('files[' + i + ']', file);
+                    formData.append('file', file);
+                // }
+                axios.post('http://localhost:8080/api/v1/user/upload-profile-photo',
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    }
+                ).then((response) => {
+                    this.profileImg = response.data.fileDownloadUri;
+                    console.log(this.profileImg);
+                }, (error) => {
+                    console.log(error);
+                });
+                this.closeModal();
+            },
+
+            handleFilesUpload() {
+                this.showModal = true;
+                let uploadedFiles = this.$refs.files.files;
+
+                for (var i = 0; i < uploadedFiles.length; i++) {
+                    this.files.push(uploadedFiles[i]);
+                }
+                this.getImagePreviews();
+            },
+
+            getImagePreviews() {
+                for (let i = 0; i < this.files.length; i++) {
+                    if (/\.(jpe?g|png|gif)$/i.test(this.files[i].name)) {
+                        let reader = new FileReader();
+                        reader.addEventListener("load", function () {
+                            this.$refs['image' + parseInt(i)][0].src = reader.result;
+                        }.bind(this), false);
+                        reader.readAsDataURL(this.files[i]);
+                    }
+                }
+            }
+            ////////// FILE UPLOAD /////////
+        },
+
+        mounted() {
+            this.info = true;
+            localStorage.isTyping = false;
+            axios
+                .get('http://localhost:8080/api/v1/user/user-list')
+                .then(response => {
+                    this.userList = response.data;
+                });
+
+            // Detect when scrolled to top.
+            let beforePosition = null;
+            const msgList = document.querySelector('#infinityMsgList');
+            msgList.addEventListener('scroll', e => {
+                if (msgList.scrollTop >= '3' && msgList.scrollTop <= '50' && beforePosition >= '50') {
+                    localStorage.isScroll = 'true';
+                    this.loadMore(msgList);
+                    beforePosition = null;
+                } else {
+                    beforePosition = msgList.scrollTop;
+                }
+            });
+        },
+        watch: {
+            inputsValue: function (typing) {
+                let userObj = {
+                    "message": typing,
+                    "toId": localStorage.toUserId
+                };
+                let payload = JSON.stringify(userObj);
+                stompClient.send("/app/typing", {}, payload);
+            }
+        },
+        created() {
+            localStorage.isScroll = 'false';
+        },
+        updated() {
+            this.$nextTick(() => {
+                if (localStorage.isScroll === 'false')
+                    this.scrollToEnd();
+            });
+        }
+
+    });
+
+</script>
+</body>
+</html>
