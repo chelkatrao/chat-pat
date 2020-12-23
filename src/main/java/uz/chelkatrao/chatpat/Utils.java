@@ -22,17 +22,24 @@ public class Utils {
         return UUID.randomUUID().toString().replace("-", "");
     }
 
+    /**
+     * Profile image cropper function
+     *
+     * @param profileImageURL location of the image that uploads to profile
+     */
     public static void cropProfilePhoto(String profileImageURL) {
         File file = new File(profileImageURL);
         try {
             final BufferedImage bi = ImageIO.read(file);
+
             int width = bi.getWidth();
             int height = bi.getHeight();
-            if (width > height) {
+
+            if (width > height)
                 width = height;
-            } else {
+            else
                 height = width;
-            }
+
             Thumbnails
                     .of(profileImageURL)
                     .crop(Positions.CENTER)
