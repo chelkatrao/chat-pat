@@ -24,8 +24,4 @@ public class ChatController {
         return "chat";
     }
 
-    @GetMapping("test")
-    public String test() {
-        return "test";
-    }
 }

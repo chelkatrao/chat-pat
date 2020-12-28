@@ -13,6 +13,7 @@ import uz.chelkatrao.chatpat.domains.User;
 import uz.chelkatrao.chatpat.models.UploadFileResponse;
 import uz.chelkatrao.chatpat.security.SecurityUtils;
 import uz.chelkatrao.chatpat.services.FileStorageService;
+import uz.chelkatrao.chatpat.services.ProfilePhotoService;
 import uz.chelkatrao.chatpat.services.UserService;
 
 import javax.servlet.http.HttpServletRequest;
@@ -27,14 +28,17 @@ public class UserRestController {
     private final UserService userService;
     private final FileStorageService fileStorageService;
     private final SecurityUtils securityUtils;
+    private final ProfilePhotoService profilePhotoService;
 
     @Autowired
     public UserRestController(UserService userService,
                               FileStorageService fileStorageService,
-                              SecurityUtils securityUtils) {
+                              SecurityUtils securityUtils,
+                              ProfilePhotoService profilePhotoService) {
         this.userService = userService;
         this.fileStorageService = fileStorageService;
         this.securityUtils = securityUtils;
+        this.profilePhotoService = profilePhotoService;
     }
 
     @GetMapping("/user-list")
@@ -59,7 +63,18 @@ public class UserRestController {
         ProfilePhoto profilePhoto = user.getProfilePhoto();
         String extension = profilePhoto.getExtension();
         Resource resource = fileStorageService.downloadFile(profilePhoto.getUploadPath(), fileName + '.' + extension);
+        return downloadPreparer(request, resource);
+    }
 
+    @GetMapping("/download/user-list-photo/{fileName}")
+    public ResponseEntity<Resource> downloadUserProfilePhoto(@PathVariable String fileName, HttpServletRequest request) {
+        ProfilePhoto profilePhoto = profilePhotoService.findProfilePhotoByHashId(fileName);
+        String extension = profilePhoto.getExtension();
+        Resource resource = fileStorageService.downloadFile(profilePhoto.getUploadPath(), fileName + '.' + extension);
+        return downloadPreparer(request, resource);
+    }
+
+    private ResponseEntity<Resource> downloadPreparer(HttpServletRequest request, Resource resource) {
         String mimeType;
         try {
             mimeType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());

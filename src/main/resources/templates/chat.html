@@ -65,8 +65,11 @@
             <div class="inbox_people">
                 <div class="headind_srch">
                     <div class="recent_heading">
-                        <h4 th:text="${userName.first}" style="float: left; padding-right: 12px"></h4>
-                        <h6 th:text="${userName.last}" style="float: left; padding-top: 5px; padding-right: 12px"></h6>
+                        <a href="/user/profile">
+                            <h4 th:text="${userName.first}" style="float: left; padding-right: 12px"></h4>
+                            <h6 th:text="${userName.last}"
+                                style="float: left; padding-top: 5px; padding-right: 12px"></h6>
+                        </a>
                         <a href="/logout" class="btn btn-info btn-sm"><span class="fa fa-lock"></span></a>
                     </div>
                     <div class="srch_bar">
@@ -83,7 +86,7 @@
                         <div class="chat_people">
                             <div class="chat_img">
                                 <img class="rounded-circle z-depth-2" alt="100x100"
-                                     v-bind:src="profileImg">
+                                     v-bind:src="user.profile_image_download_url">
                             </div>
                             <div class="chat_ib">
                                 <h5> {{user.login}}
@@ -107,9 +110,9 @@
                     <div v-if="!info">
                         <div v-for="msgObj in messageHistory">
                             <div class="incoming_msg" v-if="!msgObj.ownMessage" style="margin-bottom: 7px;">
-                                <div class="incoming_msg_img"><img
-                                        src="https://ptetutorials.com/images/user-profile.png"
-                                        alt="sunil"></div>
+                                <div class="incoming_msg_img"><img class="rounded-circle z-depth-2"
+                                                                   v-bind:src="currentProfileImg"
+                                                                   alt="sunil"></div>
                                 <div class="received_msg">
                                     <div class="received_withd_msg">
                                         <p style="background-color: #b5d9ff">{{msgObj.message}}</p>
@@ -215,7 +218,8 @@
 
                 files: [],
                 showModal: false,
-                profileImg:"https://mdbootstrap.com/img/Photos/Avatars/img%20(31).jpg"
+                profileImg: "https://mdbootstrap.com/img/Photos/Avatars/img%20(31).jpg",
+                currentProfileImg: ""
             }
         },
         methods: {
@@ -287,6 +291,9 @@
             },
 
             openOtherPeoplesPanel: function (user) {
+                console.log("+++++++++++++++");
+                this.currentProfileImg = user.profile_image_download_url;
+
                 localStorage.isScroll = 'false';
                 this.info = false;
                 this.current = user.id;
@@ -355,10 +362,10 @@
                 console.log("submitFIle methodga kirdi");
                 let formData = new FormData();
                 // for (var i = 0; i < this.files.length; i++) {
-                    let file = this.files[0];
+                let file = this.files[0];
 
-                    // formData.append('files[' + i + ']', file);
-                    formData.append('file', file);
+                // formData.append('files[' + i + ']', file);
+                formData.append('file', file);
                 // }
                 axios.post('http://localhost:8080/api/v1/user/upload-profile-photo',
                     formData,

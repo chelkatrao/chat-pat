@@ -27,10 +27,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "        where m.from_id = u.id " +
             "          and m.to_id = :currentUserId " +
             "          and m.seen = false) " +
-            "                    not_seen_message," +
-            "          false as is_typing " +
-            "from chat_user u " +
+            "                    not_seen_message, " +
+            "          false as is_typing, " +
+            "        concat(:downloadUrl , p.hash_id) as profile_image_download_url " +
+            "from chat_user u join profile_photo p on u.profile_photo_id = p.id " +
             "where u.id != :currentUserId", nativeQuery = true)
-    List<Map<String, String>> getListOfUsersByCurrentUser(@Param("currentUserId") Long currentUserId);
+    List<Map<String, String>> getListOfUsersByCurrentUser(@Param("currentUserId") Long currentUserId, String downloadUrl);
 
 }

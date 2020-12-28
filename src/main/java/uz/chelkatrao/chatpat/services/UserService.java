@@ -4,6 +4,7 @@ import org.hashids.Hashids;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uz.chelkatrao.chatpat.Utils;
 import uz.chelkatrao.chatpat.domains.ProfilePhoto;
 import uz.chelkatrao.chatpat.domains.User;
@@ -38,7 +39,10 @@ public class UserService {
     }
 
     public List<Map<String, String>> getListOfUsersByCurrentUser() {
-        return userRepository.getListOfUsersByCurrentUser(securityUtils.currentUser().getId());
+        String downloadUrl = ServletUriComponentsBuilder
+                .fromCurrentContextPath()
+                .path("/api/v1/user/download/user-list-photo/").toUriString();
+        return userRepository.getListOfUsersByCurrentUser(securityUtils.currentUser().getId(), downloadUrl);
     }
 
     public ProfilePhoto uploadProfilePhoto(MultipartFile multipartFile) {
