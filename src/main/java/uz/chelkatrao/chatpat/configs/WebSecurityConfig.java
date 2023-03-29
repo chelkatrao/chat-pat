@@ -27,17 +27,24 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         this.applicationUserService = applicationUserService;
     }
 
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .csrf().disable()
                 .authorizeRequests()
-                    .antMatchers("/" , "/login","/registration", "/resources/**","/webjars/**",
-                    "/api/v1/user/upload-profile-photo").permitAll()
-                    .anyRequest().authenticated()
-                    .and()
+                .antMatchers(
+                        "/",
+                        "/login",
+                        "/registration",
+                        "/resources/**",
+                        "/webjars/**",
+                        "/api/v1/user/upload-profile-photo")
+                .permitAll()
+                .anyRequest().authenticated()
+                .and()
                 .logout()
-                    .permitAll();
+                .permitAll();
     }
 
     @Override
